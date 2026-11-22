@@ -40,7 +40,10 @@
             ".docx",
             ".odt",
             "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-            "application/vnd.oasis.opendocument.text"
+            "application/vnd.oasis.opendocument.text",
+            "application/octet-stream",
+            "application/zip",
+            "application/*"
           ]
         }
       ]

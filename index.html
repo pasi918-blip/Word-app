@@ -26,6 +26,17 @@ body{display:flex;flex-direction:column;background:var(--bg);color:var(--ink);fo
 .sep{flex:none;width:1px;height:22px;background:var(--line);margin:0 2px}
 main{flex:1;overflow:auto;padding:10px;-webkit-overflow-scrolling:touch}
 #doc{background:#fff;color:#111;max-width:794px;margin:0 auto;min-height:calc(100% - 4px);box-sizing:border-box;padding:28px 22px;box-shadow:0 1px 6px rgba(0,0,0,.25);border-radius:2px;font:11pt/1.5 Calibri,Carlito,Arial,sans-serif;outline:none;overflow-wrap:anywhere}
+#wrap{margin:0 auto;position:relative;max-width:794px}
+#doc{position:relative}
+body.pg #wrap{max-width:none;width:794px}
+body.pg #doc{width:794px;max-width:none;padding:96px;min-height:0;border-radius:0;background-color:#fff;background-image:linear-gradient(#fff 0 1123px,var(--bg) 1123px 1147px);background-size:100% 1147px;background-repeat:repeat-y}
+#nums{position:absolute;left:0;top:0;width:100%;pointer-events:none}
+body:not(.pg) #nums{display:none}
+.pn{position:absolute;left:0;width:100%;text-align:center;font:12px system-ui,sans-serif;color:#8a8f98}
+#doc hr.pgbrk{border:0;border-top:1px dashed #9aa3b2;margin:6px 0;height:0}
+#pvbar{display:flex;gap:6px;align-items:center;justify-content:space-between;padding:8px;background:var(--bar);border-bottom:1px solid var(--line)}
+#pvbar[hidden]{display:none}
+body.pv .top,body.pv .tools,body.pv footer{display:none}
 #doc h1{font-size:20pt;color:#2f5496;margin:.6em 0 .3em}
 #doc h2{font-size:16pt;color:#2f5496;margin:.6em 0 .3em}
 #doc h3{font-size:13pt;color:#1f3763;margin:.6em 0 .3em}
@@ -36,7 +47,7 @@ main{flex:1;overflow:auto;padding:10px;-webkit-overflow-scrolling:touch}
 footer{padding:6px 12px;font-size:12px;color:var(--mut);display:flex;justify-content:space-between;background:var(--bar);border-top:1px solid var(--line)}
 #toast{position:fixed;left:50%;bottom:calc(52px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:#111;color:#fff;padding:10px 14px;border-radius:10px;font-size:14px;opacity:0;pointer-events:none;transition:opacity .2s;max-width:90%;text-align:center}
 #toast.on{opacity:1}
-@media print{html,body{height:auto;background:#fff}.top,.tools,footer,#toast{display:none!important}main{overflow:visible;padding:0}#doc{box-shadow:none;max-width:none;padding:0;min-height:0}}
+@media print{html,body{height:auto;background:#fff}body{display:block!important}.top,.tools,footer,#toast,#pvbar,#nums{display:none!important}main{overflow:visible;padding:0}#wrap{zoom:1!important;width:auto!important;max-width:none!important}#doc,body.pg #doc{box-shadow:none!important;width:auto!important;max-width:none!important;padding:0!important;min-height:0!important;background:none!important}#doc hr.pgbrk{break-after:page;border:0;margin:0}@page{size:A4;margin:2.54cm}}
 </style></head>
 <body>
 <div class="top">
@@ -45,7 +56,7 @@ footer{padding:6px 12px;font-size:12px;color:var(--mut);display:flex;justify-con
   <button class="b" id="open">Öffnen</button>
   <button class="b p" id="save">Speichern</button>
   <button class="b" id="share">Teilen</button>
-  <button class="b" id="print">Drucken</button>
+  <button class="b" id="print">Druckansicht</button>
   <input type="file" id="file" hidden accept=".docx,.odt,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.oasis.opendocument.text">
 </div>
 <div class="tools" id="tools">
@@ -54,7 +65,9 @@ footer{padding:6px 12px;font-size:12px;color:var(--mut);display:flex;justify-con
   <input type="color" id="col" value="#d11a2a" aria-label="Textfarbe" title="Textfarbe">
 </div>
 <input type="file" id="imgf" hidden accept="image/*">
-<main><article id="doc" contenteditable="true" spellcheck="true"><p><br></p></article></main>
+<div id="pvbar" hidden><button class="b" id="pvback">← Zurück</button><button class="b" data-z="0.8">−</button><button class="b" data-z="1.25">+</button><button class="b p" id="pvprint">Drucken / PDF</button></div>
+<main id="main"><div id="wrap"><article id="doc" contenteditable="true" spellcheck="true"><p><br></p></article><div id="nums"></div></div></main>
+<style id="pgcss"></style>
 <footer><span id="cnt">0 Wörter</span><span>.docx/.odt öffnen · als .docx speichern</span></footer>
 <div id="toast"></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.4.2/mammoth.browser.min.js"></script>
@@ -68,7 +81,7 @@ const TOOLS=[['↶','undo','Rückgängig'],['↷','redo','Wiederholen'],0,
 ['<b>F</b>','bold','Fett'],['<i>K</i>','italic','Kursiv'],['<u>U</u>','underline','Unterstrichen'],['<s>D</s>','strikeThrough','Durchgestrichen'],0,
 ['•','insertUnorderedList','Aufzählung'],['1.','insertOrderedList','Nummerierung'],0,
 [al('L'),'justifyLeft','Linksbündig'],[al('C'),'justifyCenter','Zentriert'],[al('R'),'justifyRight','Rechtsbündig'],[al('J'),'justifyFull','Blocksatz'],0,
-['⇥','indent','Einzug vergrößern'],['⇤','outdent','Einzug verkleinern'],['▦','table','Tabelle einfügen'],['🖼','image','Bild einfügen']];
+['⇥','indent','Einzug vergrößern'],['⇤','outdent','Einzug verkleinern'],['▦','table','Tabelle einfügen'],['🖼','image','Bild einfügen'],['⤓','pagebreak','Seitenumbruch'],0,['📄','view','Seitenansicht ein/aus'],['−','zout','Verkleinern'],['+','zin','Vergrößern']];
 const tl=$('#tools');
 TOOLS.forEach(t=>{if(!t){tl.insertAdjacentHTML('beforeend','<span class="sep"></span>');return}
   tl.insertAdjacentHTML('beforeend',`<button data-c="${t[1]}" title="${t[2]}" aria-label="${t[2]}">${t[0]}</button>`)});
@@ -78,11 +91,14 @@ function ex(c,a){doc.focus();restore();document.execCommand(c,false,a);upd();mar
 function upd(){STATE.forEach(c=>{const b=tl.querySelector(`[data-c="${c}"]`);try{b.classList.toggle('on',document.queryCommandState(c))}catch(e){}});
   try{const v=document.queryCommandValue('formatBlock').toLowerCase().replace(/[<>]/g,'');$('#blk').value=/^h[123]$/.test(v)?v:'p'}catch(e){}}
 function fixFonts(){doc.querySelectorAll('font[size="7"]').forEach(f=>{const s=document.createElement('span');s.style.fontSize=(f.dataset.pt||fixFonts.pt||12)+'pt';while(f.firstChild)s.appendChild(f.firstChild);f.replaceWith(s)})}
-function mark(){fixFonts();dirty=true;armed=false;const t=doc.innerText.trim();$('#cnt').textContent=(t?t.split(/\s+/).length:0)+' Wörter';
+function mark(){fixFonts();dirty=true;sched();armed=false;const t=doc.innerText.trim();$('#cnt').textContent=(t?t.split(/\s+/).length:0)+' Wörter';
   clearTimeout(mark.t);mark.t=setTimeout(()=>{try{localStorage.setItem('docdraft',JSON.stringify({h:doc.innerHTML,n:$('#name').value}))}catch(e){}},700)}
 tl.addEventListener('mousedown',e=>{if(e.target.closest('button'))e.preventDefault()});
 tl.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;const c=b.dataset.c;
   if(c==='image'){$('#imgf').click();return}
+  if(c==='pagebreak'){ex('insertHTML','<hr class="pgbrk"><p><br></p>');return}
+  if(c==='view'){pageMode=!pageMode;b.classList.toggle('on',pageMode);layout();return}
+  if(c==='zin'||c==='zout'){zz(c==='zin'?1.25:0.8);return}
   if(c==='table'){const r='<tr>'+'<td><br></td>'.repeat(3)+'</tr>';ex('insertHTML','<table>'+r+r+r+'</table><p><br></p>')}else ex(c)});
 $('#sz').onchange=e=>{const n=e.target.value;if(!n)return;fixFonts.pt=n;doc.focus();restore();document.execCommand('styleWithCSS',false,false);document.execCommand('fontSize',false,'7');mark();e.target.value=''};
 $('#col').onchange=e=>{doc.focus();restore();document.execCommand('styleWithCSS',false,true);document.execCommand('foreColor',false,e.target.value);document.execCommand('styleWithCSS',false,false);mark()};
@@ -102,14 +118,14 @@ const openFile=async f=>{if(!f)return;
   const odt=/\.odt$/i.test(f.name);
   if(!odt&&!/\.docx$/i.test(f.name)){toast('Bitte eine .docx- oder .odt-Datei wählen (kein altes .doc).');return}
   if(typeof (odt?JSZip:mammoth)==='undefined'){toast('Lade-Bibliothek nicht verfügbar. Bitte Seite neu laden.');return}
-  try{const buf=await f.arrayBuffer(),html=odt?await odtToHtml(buf):(await mammoth.convertToHtml({arrayBuffer:buf})).value;
+  try{const buf=await f.arrayBuffer(),html=odt?await odtToHtml(buf):(await mammoth.convertToHtml({arrayBuffer:buf},{styleMap:["br[type='page'] => hr.pgbrk"]})).value;
     doc.innerHTML=html||'<p><br></p>';$('#name').value=f.name.replace(/\.(docx|odt)$/i,'');mark();dirty=false;doc.scrollTop=0;toast('Geöffnet: '+f.name)}
   catch(err){toast('Datei konnte nicht geöffnet werden.')}};
 $('#file').onchange=e=>{const f=e.target.files[0];e.target.value='';openFile(f)};
 
 /* DOM → DOCX */
 const esc=s=>s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-const BLK=/^(P|DIV|H[1-6]|UL|OL|LI|TABLE|BLOCKQUOTE|PRE)$/;
+const BLK=/^(P|DIV|H[1-6]|UL|OL|LI|TABLE|BLOCKQUOTE|PRE|HR)$/;
 let nums=[],imgs=[];
 function img(c){const src=c.src||'',m=src.match(/^data:image\/(png|jpe?g);base64,(.+)$/i);let ext,b64;
   if(m){ext=m[1].toLowerCase().replace('jpeg','jpg');b64=m[2]}
@@ -140,6 +156,7 @@ function blocks(n,al){let o='',p=[];
   for(const c of n.childNodes){if(c.nodeType===1&&BLK.test(c.tagName)){fl();o+=blk(c,al)}else p.push(c)}
   fl();return o}
 function blk(c,al0){const t=c.tagName,al=c.style.textAlign||al0;
+  if(c.classList.contains('pgbrk'))return '<w:p><w:r><w:br w:type="page"/></w:r></w:p>';
   if(/^H[1-6]$/.test(t))return para(runs(c,{}),{style:'Heading'+Math.min(+t[1],3),al});
   if(t==='UL'||t==='OL')return list(c,0,al);
   if(t==='TABLE')return table(c);
@@ -188,7 +205,7 @@ async function odtToHtml(buf){
       if(c.localName==='text-properties'){const fw=c.getAttributeNS(FO,'font-weight'),fi=c.getAttributeNS(FO,'font-style'),u=c.getAttributeNS(ST,'text-underline-style'),s=c.getAttributeNS(ST,'text-line-through-style'),col=c.getAttributeNS(FO,'color'),fs=c.getAttributeNS(FO,'font-size');
         if(fw)p.b=fw==='bold'?1:0;if(fi)p.i=fi==='italic'?1:0;if(u)p.u=u==='none'?0:1;if(s)p.s=s==='none'?0:1;
         if(/^#[0-9a-f]{6}$/i.test(col))p.c=col;if(/pt$/.test(fs))p.z=parseFloat(fs)}
-      else if(c.localName==='paragraph-properties'){const a=c.getAttributeNS(FO,'text-align');if(a)p.a={end:'right',right:'right',center:'center',justify:'justify'}[a]||'left'}}
+      else if(c.localName==='paragraph-properties'){if(c.getAttributeNS(FO,'break-before')==='page')p.pb=1;const a=c.getAttributeNS(FO,'text-align');if(a)p.a={end:'right',right:'right',center:'center',justify:'justify'}[a]||'left'}}
     return p}
   const wrap=(c,h,para)=>{if(!h)return h;const p=props(c.getAttributeNS(T,'style-name'));
     if(p.b)h=`<b>${h}</b>`;if(p.i)h=`<i>${h}</i>`;if(p.u)h=`<u>${h}</u>`;if(p.s)h=`<s>${h}</s>`;
@@ -212,6 +229,7 @@ async function odtToHtml(buf){
   function tbl(t){let o='<table>';for(const r of t.getElementsByTagNameNS(TB,'table-row')){o+='<tr>';for(const c of r.children)if(c.localName==='table-cell')o+='<td>'+(blk(c)||'<br>')+'</td>';o+='</tr>'}return o+'</table><p><br></p>'}
   function blk(n){let o='';for(const c of n.children){const l=c.localName,ns=c.namespaceURI;
     if(ns===T){
+      const pb=props(c.getAttributeNS(T,'style-name')).pb?'<hr class="pgbrk">':'';if(pb&&(l==='h'||l==='p'))o+=pb;
       if(l==='h'){const lv=Math.min(+c.getAttributeNS(T,'outline-level')||1,3);o+=`<h${lv}${al(c)}>${inl(c)}</h${lv}>`}
       else if(l==='p')o+=`<p${al(c)}>${wrap(c,inl(c),1)||'<br>'}</p>`;
       else if(l==='list')o+=items(c,'');
@@ -242,10 +260,48 @@ $('#share').onclick=async()=>{const blob=await prep();if(!blob)return;const file
   if(navigator.canShare&&navigator.canShare({files:[file]})){
     try{await navigator.share({files:[file],title:file.name});dirty=false}catch(e){if(e.name!=='AbortError')toast('Teilen fehlgeschlagen.')}
   }else toast('Teilen wird hier nicht unterstützt. Bitte „Speichern“ nutzen.')};
-$('#print').onclick=()=>{try{window.print()}catch(e){toast('Drucken wird hier nicht unterstützt.')}};
+$('#print').onclick=()=>{pv=true;doc.contentEditable='false';document.body.classList.add('pv');$('#pvbar').hidden=false;layout();$('#main').scrollTop=0};
+$('#pvback').onclick=()=>{pv=false;doc.contentEditable='true';document.body.classList.remove('pv');$('#pvbar').hidden=true;layout()};
+$('#pvprint').onclick=()=>{try{window.print()}catch(e){toast('Drucken wird hier nicht unterstützt.')}};
+$('#pvbar').addEventListener('click',e=>{const b=e.target.closest('[data-z]');if(b)zz(+b.dataset.z)});
+
+/* Seitenansicht: Seiten wie in Word (A4), Umbruch per Abstand vor dem ersten Block der nächsten Seite */
+const PW=794,PH=1123,PM=96,PGAP=24,CH=PH-2*PM,PP=PH+PGAP;
+let pageMode=true,pv=false,zmul=1;
+const fitZoom=()=>Math.min(1.2,($('#main').clientWidth-16)/PW)*zmul;
+function zz(f){zmul=Math.max(.5,Math.min(3,zmul*f));layout()}
+function sched(){clearTimeout(sched.t);sched.t=setTimeout(layout,250)}
+function layout(){
+  const w=$('#wrap'),st=$('#pgcss'),nums=$('#nums'),pg=pageMode||pv;
+  document.body.classList.toggle('pg',pg);st.textContent='';nums.innerHTML='';doc.style.minHeight='';
+  if(!pg){w.style.zoom=Math.min(2,zmul);return}
+  w.style.zoom=1;
+  const rules=[];let end=PM+CH,pages=1,force=false;
+  const apply=()=>{st.textContent='@media screen{'+rules.join('')+'}'};
+  const place=(el,sel,start)=>{const t=el.tagName==='TABLE',i=rules.push('')-1;
+    const set=v=>{rules[i]=`${sel}{${t?'margin-top':'padding-top'}:${Math.max(0,v)}px}`;apply()};
+    const v=start-el.offsetTop+(t?12:0);set(v);
+    if(t){const d=start-el.offsetTop;if(d)set(v+d)}};
+  const walk=(box,pre)=>{[...box.children].forEach((b,i)=>{
+    const sel=`${pre}>:nth-child(${i+1})`;
+    if(b.classList.contains('pgbrk')){force=true;return}
+    const top=b.offsetTop,bot=top+b.offsetHeight,ps=end-CH;
+    if(force&&top<=ps+2){force=false;return}
+    if(!force&&bot<=end)return;
+    if(!force&&/^(UL|OL)$/.test(b.tagName)&&top<end-40){walk(b,sel);return}
+    if(!force&&top<=ps+2){while(end<bot){end+=PP;pages++}return}
+    const start=end+2*PM+PGAP;place(b,sel,start);end=start+CH;pages++;force=false;
+    const nb=b.offsetTop+b.offsetHeight;while(end<nb){end+=PP;pages++}})};
+  walk(doc,'#doc');
+  doc.style.minHeight=((pages-1)*PP+PH)+'px';
+  nums.innerHTML=Array.from({length:pages},(_,k)=>`<span class="pn" style="top:${k*PP+PH-62}px">Seite ${k+1} / ${pages}</span>`).join('');
+  w.style.zoom=fitZoom()}
+addEventListener('resize',sched);doc.addEventListener('load',sched,true);
 
 /* Entwurf wiederherstellen */
 try{const d=JSON.parse(localStorage.getItem('docdraft')||'null');if(d&&d.h){doc.innerHTML=d.h;$('#name').value=d.n||'Unbenannt';mark();dirty=false;toast('Letzter Entwurf wiederhergestellt')}}catch(e){}
+$('#tools [data-c="view"]').classList.add('on');
+layout();document.fonts&&document.fonts.ready.then(layout);
 if('serviceWorker' in navigator)addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
 /* Dateien von außen: „Teilen“ aus dem Dateimanager, Desktop-Dateizuordnung */
 if(location.search.includes('shared=1'))(async()=>{try{const c=await caches.open('shared'),r=await c.match('shared-file');
